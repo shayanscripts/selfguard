@@ -1,0 +1,252 @@
+{
+  "schema_version": "1.0",
+  "artifact_id": "sep_fixed_system_paper_seed42",
+  "release_status": "exploratory-research-preview",
+  "project_version": "0.1.0",
+  "experiment": {
+    "name": "SEP-derived fixed-system paired ablation",
+    "benchmark_source": {
+      "name": "Should It Be Executed Or Processed?",
+      "repository": "https://github.com/egozverev/Should-It-Be-Executed-Or-Processed",
+      "citation": "Zverev et al., Can LLMs Separate Instructions From Data? And What Do We Even Mean By That?, ICLR 2025",
+      "redistributed_here": false,
+      "historical_archive_sha256_recorded": false,
+      "canonical_file_size_bytes": 12089182,
+      "canonical_file_sha256": "9f81a52ba089073251793f8499fbb79bb4112e94cf48d31b7f8805e8b44fa3ce"
+    },
+    "canonical_rows_loaded": 9160,
+    "variant": "fixed ShopCo system prompt",
+    "native_sep_system_prompts_used": false,
+    "seed": 42,
+    "split_description": "task- and witness-group-disjoint selected split",
+    "fully_leakage_free_claimed": false,
+    "sample_counts": {
+      "clean_calibration": 1000,
+      "training_pairs": 2000,
+      "validation_pairs": 300,
+      "test_pairs": 300,
+      "test_clean_examples": 300,
+      "test_injected_examples": 300
+    },
+    "test_attack_prevalence": 0.5,
+    "generation": {
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "historical_model_revision_recorded": false,
+      "max_new_tokens": 80,
+      "decoding": "greedy",
+      "system_prompt_count": 1
+    },
+    "effective_attack_proxy": {
+      "definition": "case-insensitive witness substring in generated output",
+      "human_confirmed": false,
+      "all_generated_injected_hits": 1709,
+      "all_generated_injected_total": 2600,
+      "test_proxy_positive_total": 173
+    },
+    "confirmatory_holdout": false,
+    "test_inspected_during_development": true,
+    "historical_smoke_overlap": "The old smoke and paper workflows reused seed 42 and leading slices; smoke validation and test examples were subsets of the paper validation and test examples."
+  },
+  "signals": {
+    "SELF-Light": [
+      "signal1_vocab",
+      "signal2_coherence",
+      "signal3_alignment"
+    ],
+    "SELF-Full": [
+      "signal1_vocab",
+      "signal2_coherence",
+      "signal3_alignment",
+      "signal4_nll_bits_model"
+    ],
+    "signal4_requires_model_logits": true,
+    "signal4_requires_extra_forward_pass": true,
+    "signal4_smoke_diagnostic": {
+      "response_count": 200,
+      "source_counts": {
+        "exact_token_ids": 200
+      },
+      "missing_values": 0,
+      "median_extra_forward_pass_latency_ms": 142.5550170000065,
+      "part_of_paper_mode_metrics": false,
+      "hardware_and_runtime_provenance_complete": false
+    }
+  },
+  "results": {
+    "weighted_baseline": {
+      "features": "fixed weighted S1-S3",
+      "threshold": 0.8,
+      "test": {
+        "precision": 0.7678571428571429,
+        "recall": 0.14333333333333334,
+        "f1": 0.24157303370786518,
+        "clean_fpr": 0.043333333333333335,
+        "tn": 287,
+        "fp": 13,
+        "fn": 257,
+        "tp": 43,
+        "roc_auc": 0.7364388888888888,
+        "average_precision": 0.6921570901677274,
+        "confusion_counts_derived_from_reported_metrics": true
+      }
+    },
+    "random_forest": [
+      {
+        "model": "SELF-Light (S1-S3)",
+        "operating_point": "max_validation_f1",
+        "validation": {
+          "precision": 0.6833333333333333,
+          "recall": 0.82,
+          "f1": 0.7454545454545455,
+          "clean_fpr": 0.38
+        },
+        "threshold": 0.390223,
+        "test": {
+          "precision": 0.7390029325513197,
+          "recall": 0.84,
+          "f1": 0.7862714508580343,
+          "clean_fpr": 0.2966666666666667,
+          "tn": 211,
+          "fp": 89,
+          "fn": 48,
+          "tp": 252,
+          "roc_auc": 0.8538444444444444,
+          "average_precision": 0.8643183814022116,
+          "effective_attack_hits": 170,
+          "effective_attack_total": 173,
+          "effective_attack_recall": 0.9826589595375722
+        }
+      },
+      {
+        "model": "SELF-Light (S1-S3)",
+        "operating_point": "validation_fpr_le_5pct",
+        "validation": {
+          "precision": 0.88,
+          "recall": 0.36666666666666664,
+          "f1": 0.5176470588235295,
+          "clean_fpr": 0.05
+        },
+        "threshold": 0.733778,
+        "test": {
+          "precision": 0.9428571428571428,
+          "recall": 0.44,
+          "f1": 0.6,
+          "clean_fpr": 0.02666666666666667,
+          "tn": 292,
+          "fp": 8,
+          "fn": 168,
+          "tp": 132,
+          "roc_auc": 0.8538444444444444,
+          "average_precision": 0.8643183814022116,
+          "effective_attack_hits": 90,
+          "effective_attack_total": 173,
+          "effective_attack_recall": 0.5202312138728323
+        }
+      },
+      {
+        "model": "SELF-Full (S1-S4)",
+        "operating_point": "max_validation_f1",
+        "validation": {
+          "precision": 0.6435406698564593,
+          "recall": 0.8966666666666666,
+          "f1": 0.7493036211699164,
+          "clean_fpr": 0.49666666666666665
+        },
+        "threshold": 0.299815,
+        "test": {
+          "precision": 0.6666666666666666,
+          "recall": 0.9,
+          "f1": 0.7659574468085106,
+          "clean_fpr": 0.45,
+          "tn": 165,
+          "fp": 135,
+          "fn": 30,
+          "tp": 270,
+          "roc_auc": 0.862028,
+          "average_precision": 0.877253,
+          "effective_attack_hits": 172,
+          "effective_attack_total": 173,
+          "effective_attack_recall": 0.9942196531791907
+        }
+      },
+      {
+        "model": "SELF-Full (S1-S4)",
+        "operating_point": "validation_fpr_le_5pct",
+        "validation": {
+          "precision": 0.9025974025974026,
+          "recall": 0.4633333333333333,
+          "f1": 0.6123348017621145,
+          "clean_fpr": 0.05
+        },
+        "threshold": 0.719706,
+        "test": {
+          "precision": 0.9452054794520548,
+          "recall": 0.46,
+          "f1": 0.6188340807174888,
+          "clean_fpr": 0.02666666666666667,
+          "tn": 292,
+          "fp": 8,
+          "fn": 162,
+          "tp": 138,
+          "roc_auc": 0.862028,
+          "average_precision": 0.877253,
+          "effective_attack_hits": 99,
+          "effective_attack_total": 173,
+          "effective_attack_recall": 0.5722543352601156
+        }
+      }
+    ],
+    "SELF-Full_minus_SELF-Light": [
+      {
+        "operating_point": "max_validation_f1",
+        "delta_precision": -0.072336,
+        "delta_recall": 0.06,
+        "delta_f1": -0.020314,
+        "delta_clean_fpr": 0.153333,
+        "delta_roc_auc": 0.008183,
+        "delta_average_precision": 0.012935,
+        "delta_effective_attack_recall": 0.011561
+      },
+      {
+        "operating_point": "validation_fpr_le_5pct",
+        "delta_precision": 0.002348,
+        "delta_recall": 0.02,
+        "delta_f1": 0.018834,
+        "delta_clean_fpr": 0.0,
+        "delta_roc_auc": 0.008183,
+        "delta_average_precision": 0.012935,
+        "delta_effective_attack_recall": 0.052023
+      }
+    ],
+    "random_forest_impurity_feature_importance": [
+      {
+        "feature": "signal3_alignment",
+        "importance": 0.293859
+      },
+      {
+        "feature": "signal4_nll_bits_model",
+        "importance": 0.254848
+      },
+      {
+        "feature": "signal1_vocab",
+        "importance": 0.245052
+      },
+      {
+        "feature": "signal2_coherence",
+        "importance": 0.206242
+      }
+    ]
+  },
+  "caveats": [
+    "The test set was inspected during RF3 development and again during S4 development, so all RF3/RF4 test comparisons are exploratory.",
+    "The old smoke and paper protocols overlapped; they were not independent confirmations.",
+    "The balanced 50 percent test attack prevalence does not represent typical deployment prevalence.",
+    "The witness substring is an automated proxy rather than a human-confirmed attack-success label.",
+    "Only one model, fixed system prompt, seed, and decoding configuration were evaluated.",
+    "No confidence interval or paired significance result currently establishes the S4 improvement.",
+    "S4 requires logits and an additional forward pass.",
+    "Detection occurs after generation and cannot undo generation-time side effects.",
+    "Random-forest impurity importance is descriptive and not causal.",
+    "Historical package, model-revision, accelerator, and dataset hashes were not completely recorded."
+  ]
+}
