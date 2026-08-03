@@ -27,3 +27,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Reframed historical paper-mode numbers as exploratory because the test set was inspected during development and old smoke/paper slices overlapped.
 - Replaced broad “leakage-free” language with the supported “task- and witness-group-disjoint selected split” description.
 - Redacted blocked raw responses from nested detection metadata and made telemetry delivery messages reflect actual endpoint configuration.
+- Expanded the README evidence section to report the weighted baseline and both Random Forest operating points with complete validation, test, confusion-count, ranking, and witness-proxy metrics.

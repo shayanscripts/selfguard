@@ -37,24 +37,68 @@ distribute fitted `joblib` artifacts as a stable production detector.
 
 The reported evaluation is a **SEP-derived, fixed-system-prompt experiment**:
 Qwen2.5-0.5B-Instruct, one ShopCo policy, seed 42, greedy generation, and a
-balanced test set of 300 clean plus 300 injected responses.
+balanced test set of 300 clean plus 300 injected responses. The run used 1,000
+clean calibration responses, 2,000 training pairs, and 300 validation pairs.
 
-At the validation-FPR-at-most-5% operating point:
+No single F1 describes every deployment tradeoff. The weighted baseline used
+its fixed threshold of 0.8; each Random Forest threshold was selected on the
+validation split and then evaluated on the fixed exploratory test split.
+Historical Random Forest thresholds are displayed to six decimal places
+because higher-precision values were not preserved in the frozen result record.
 
-| Model | Precision | Recall | F1 | Observed clean FPR | TP / FP |
-|---|---:|---:|---:|---:|---:|
-| SELF-Light (RF3) | 0.9429 | 0.4400 | 0.6000 | 0.0267 | 132 / 8 |
-| SELF-Full (RF4) | 0.9452 | 0.4600 | 0.6188 | 0.0267 | 138 / 8 |
+### Validation-selected Random Forest operating points
 
-Signal 4 recorded six additional injected detections at the same aggregate
-false-positive count in this operating-point comparison. It did **not** reduce
-false positives. At the maximum-validation-F1 point, RF4 raised recall but also
-raised false positives from 89 to 135 and lowered test F1.
+| Model | Operating point | Threshold | Precision | Recall | F1 | Clean FPR | TN | FP | FN | TP |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| SELF-Light (RF3) | Maximum validation F1 | 0.390223 | 0.683333 | 0.820000 | 0.745455 | 0.380000 | 186 | 114 | 54 | 246 |
+| SELF-Light (RF3) | Validation FPR ≤ 5% | 0.733778 | 0.880000 | 0.366667 | 0.517647 | 0.050000 | 285 | 15 | 190 | 110 |
+| SELF-Full (RF4) | Maximum validation F1 | 0.299815 | 0.643541 | 0.896667 | 0.749304 | 0.496667 | 151 | 149 | 31 | 269 |
+| SELF-Full (RF4) | Validation FPR ≤ 5% | 0.719706 | 0.902597 | 0.463333 | 0.612335 | 0.050000 | 285 | 15 | 161 | 139 |
+
+Validation confusion counts are the integer counts implied by the stored
+metrics and the 300-clean/300-injected validation design.
+
+### Fixed exploratory test results
+
+| Model | Operating point | Threshold | Precision | Recall | F1 | Clean FPR | TN | FP | FN | TP | ROC AUC | Average precision | Witness-proxy recall |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Weighted S1-S3 | Fixed threshold | 0.800000 | 0.767857 | 0.143333 | 0.241573 | 0.043333 | 287 | 13 | 257 | 43 | 0.736439 | 0.692157 | Not measured |
+| SELF-Light (RF3) | Maximum validation F1 | 0.390223 | 0.739003 | 0.840000 | 0.786271 | 0.296667 | 211 | 89 | 48 | 252 | 0.853844 | 0.864318 | 170/173 (0.982659) |
+| SELF-Light (RF3) | Validation FPR ≤ 5% | 0.733778 | 0.942857 | 0.440000 | 0.600000 | 0.026667 | 292 | 8 | 168 | 132 | 0.853844 | 0.864318 | 90/173 (0.520231) |
+| SELF-Full (RF4) | Maximum validation F1 | 0.299815 | 0.666667 | 0.900000 | 0.765957 | 0.450000 | 165 | 135 | 30 | 270 | 0.862028 | 0.877253 | 172/173 (0.994220) |
+| SELF-Full (RF4) | Validation FPR ≤ 5% | 0.719706 | 0.945205 | 0.460000 | 0.618834 | 0.026667 | 292 | 8 | 162 | 138 | 0.862028 | 0.877253 | 99/173 (0.572254) |
+
+The weighted-baseline confusion counts are reconstructed exactly from the
+reported metrics and balanced test-set size; historical row-level predictions
+were not retained. ROC AUC and average precision do not depend on the displayed
+operating threshold, so they repeat across the two rows for each forest.
+
+### SELF-Full minus SELF-Light
+
+| Operating point | Delta precision | Delta recall | Delta F1 | Delta clean FPR | Delta ROC AUC | Delta average precision | Delta witness-proxy recall |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Maximum validation F1 | -0.072336 | +0.060000 | -0.020314 | +0.153333 | +0.008183 | +0.012935 | +0.011561 |
+| Validation FPR ≤ 5% | +0.002348 | +0.020000 | +0.018834 | 0.000000 | +0.008183 | +0.012935 | +0.052023 |
+
+Thus, the highest observed test F1 was 0.786271 for SELF-Light at the
+maximum-validation-F1 point. At the low-FPR point, SELF-Full raised F1 from
+0.600000 to 0.618834 and true positives from 132 to 138 while both models had
+8 false positives. At the maximum-validation-F1 point, SELF-Full raised recall
+but increased false positives from 89 to 135 and reduced test F1.
+
+The RF4 impurity importances were S3 alignment 0.293859, S4 model NLL
+0.254848, S1 vocabulary 0.245052, and S2 coherence 0.206242. In a separate
+200-response smoke diagnostic, S4 used exact token IDs for every response,
+had zero missing values, and added a median 142.555 ms forward-pass latency;
+that timing is hardware-specific. Witness-proxy recall uses a case-insensitive
+witness substring, not a human-confirmed attack-success judgment.
 
 These results are exploratory: the test set was inspected during development,
 the old smoke run overlapped the old paper split, attack prevalence was
 artificially 50%, and only one small model/prompt/seed was evaluated. Read
-[RESULTS.md](RESULTS.md) for the complete table and
+[RESULTS.md](RESULTS.md) and the
+[machine-readable result record](results/sep_fixed_system_paper_seed42.json) for
+the complete evidence, and read
 [LIMITATIONS.md](LIMITATIONS.md) before citing it.
 
 ## Install

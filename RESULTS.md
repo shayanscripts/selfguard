@@ -15,28 +15,30 @@ The historical paper-mode run used:
 
 The test set is therefore balanced at 50% attack prevalence. Precision below is conditional on that artificial prevalence and should not be interpreted as deployment positive predictive value.
 
-## Held-out weighted heuristic
+## Fixed exploratory test: weighted heuristic
 
 The fixed S1-S3 weighted heuristic was evaluated at its pre-set threshold of 0.8.
 
-| Threshold | Precision | Recall | F1 | ROC AUC | Average precision | TN | FP | FN | TP |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0.800000 | 0.767857 | 0.143333 | 0.241573 | 0.736439 | 0.692157 | 287 | 13 | 257 | 43 |
+| Threshold | Precision | Recall | F1 | Clean FPR | ROC AUC | Average precision | TN | FP | FN | TP |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.800000 | 0.767857 | 0.143333 | 0.241573 | 0.043333 | 0.736439 | 0.692157 | 287 | 13 | 257 | 43 |
 
 The confusion counts above are the integer counts implied by the reported metrics on 300 clean and 300 injected test examples.
 
 ## Paired random-forest ablation
 
-`SELF-Light` uses S1-S3. `SELF-Full` adds S4, model conditional negative log-likelihood in bits. Each operating threshold was selected on validation data and then applied once to the corresponding test scores.
+`SELF-Light` uses S1-S3. `SELF-Full` adds S4, model conditional negative log-likelihood in bits. Each operating threshold was selected on validation data and then evaluated on the fixed test scores. Historical Random Forest thresholds are shown to six decimal places because higher-precision values were not preserved in the frozen result record.
 
 ### Validation-selected operating points
 
-| Model | Operating point | Threshold | Validation precision | Validation recall | Validation F1 | Validation clean FPR |
-|---|---|---:|---:|---:|---:|---:|
-| SELF-Light (S1-S3) | Maximum validation F1 | 0.390223 | 0.683333 | 0.820000 | 0.745455 | 0.380000 |
-| SELF-Light (S1-S3) | Validation FPR ≤ 5% | 0.733778 | 0.880000 | 0.366667 | 0.517647 | 0.050000 |
-| SELF-Full (S1-S4) | Maximum validation F1 | 0.299815 | 0.643541 | 0.896667 | 0.749304 | 0.496667 |
-| SELF-Full (S1-S4) | Validation FPR ≤ 5% | 0.719706 | 0.902597 | 0.463333 | 0.612335 | 0.050000 |
+| Model | Operating point | Threshold | Validation precision | Validation recall | Validation F1 | Validation clean FPR | TN | FP | FN | TP |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| SELF-Light (S1-S3) | Maximum validation F1 | 0.390223 | 0.683333 | 0.820000 | 0.745455 | 0.380000 | 186 | 114 | 54 | 246 |
+| SELF-Light (S1-S3) | Validation FPR ≤ 5% | 0.733778 | 0.880000 | 0.366667 | 0.517647 | 0.050000 | 285 | 15 | 190 | 110 |
+| SELF-Full (S1-S4) | Maximum validation F1 | 0.299815 | 0.643541 | 0.896667 | 0.749304 | 0.496667 | 151 | 149 | 31 | 269 |
+| SELF-Full (S1-S4) | Validation FPR ≤ 5% | 0.719706 | 0.902597 | 0.463333 | 0.612335 | 0.050000 | 285 | 15 | 161 | 139 |
+
+Validation confusion counts are the integer counts implied by the stored metrics and the 300-clean/300-injected validation design.
 
 ### Test results
 
