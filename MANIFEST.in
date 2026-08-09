@@ -3,6 +3,9 @@ include README.md
 include RESULTS.md
 include LIMITATIONS.md
 include REPRODUCIBILITY.md
+include EVALUATION.md
+include SECURITY_BOUNDARY.md
+include PLUGIN.md
 include SECURITY.md
 include CONTRIBUTING.md
 include CHANGELOG.md

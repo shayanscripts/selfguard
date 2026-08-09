@@ -1,18 +1,18 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite this repository and clearly identify the version or commit used."
-title: "SELFGuard: Experimental post-generation behavioral-drift signals for prompt-injection detection"
+title: "SELFGuard: Experimental prompt-risk and behavioral-drift signals for prompt-injection detection"
 type: software
-version: 0.1.0
+version: 0.2.0-rc.1
 authors:
   - family-names: "Shayan"
 repository-code: "https://github.com/shayanscripts/selfguard"
 url: "https://github.com/shayanscripts/selfguard"
 license: MIT
 abstract: >-
-  An exploratory Python research preview for measuring behavioral drift in
-  language-model responses and studying post-generation prompt-injection
-  detection. The v0.1 evidence is limited to a SEP-derived fixed-system
-  experiment and should not be interpreted as a production security guarantee.
+  An exploratory Python release candidate for measuring prompt risk before
+  generation and behavioral drift in language-model responses. The evidence
+  is based on already-inspected development benchmarks and should not be
+  interpreted as a production security guarantee.
 keywords:
   - prompt injection
   - language models
