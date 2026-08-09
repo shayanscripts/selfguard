@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
-          python -m pip install -e ".[huggingface]"
+          python -m pip install -e ".[huggingface,plugin]"
 
       - name: Verify Signal 4 dependency is active
         run: python -c "import torch; print('PyTorch', torch.__version__)"

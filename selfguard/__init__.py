@@ -27,8 +27,43 @@ Usage:
 from .guard import SELFGuard, GuardedResponse
 from .core  import SELFDetector, DetectionResult
 from .surprise import TokenSurprise, token_surprise_bits, token_surprise_bits_from_ids
+from .evaluation import (
+    BinaryMetrics,
+    EvaluationRecord,
+    FixedFPRReport,
+    RateInterval,
+    ThresholdSelection,
+    assert_disjoint_splits,
+    binary_metrics,
+    evaluate_fixed_fpr,
+    load_evaluation_records,
+    minimum_clean_samples_for_zero_false_positives,
+    precision_at_prevalence,
+    select_threshold_at_fpr,
+    wilson_interval,
+)
+from .boundary import (
+    ActionBoundary,
+    ActionRequest,
+    AuditEvent,
+    AuthorizationDecision,
+    AuthorizationError,
+    Decision,
+    RiskLevel,
+    ToolPolicy,
+)
+from .prompt_risk import PromptRiskDetector, PromptRiskResult
+from .plugin import (
+    PromptAction,
+    PromptAuditEvent,
+    PromptBlockedError,
+    PromptDecision,
+    PromptInjectionPlugin,
+    PromptReviewRequired,
+    SkopsPromptScorer,
+)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0rc1"
 __all__ = [
     "SELFGuard",
     "GuardedResponse",
@@ -37,4 +72,34 @@ __all__ = [
     "TokenSurprise",
     "token_surprise_bits",
     "token_surprise_bits_from_ids",
+    "BinaryMetrics",
+    "EvaluationRecord",
+    "FixedFPRReport",
+    "RateInterval",
+    "ThresholdSelection",
+    "assert_disjoint_splits",
+    "binary_metrics",
+    "evaluate_fixed_fpr",
+    "load_evaluation_records",
+    "minimum_clean_samples_for_zero_false_positives",
+    "precision_at_prevalence",
+    "select_threshold_at_fpr",
+    "wilson_interval",
+    "ActionBoundary",
+    "ActionRequest",
+    "AuditEvent",
+    "AuthorizationDecision",
+    "AuthorizationError",
+    "Decision",
+    "RiskLevel",
+    "ToolPolicy",
+    "PromptRiskDetector",
+    "PromptRiskResult",
+    "PromptAction",
+    "PromptAuditEvent",
+    "PromptBlockedError",
+    "PromptDecision",
+    "PromptInjectionPlugin",
+    "PromptReviewRequired",
+    "SkopsPromptScorer",
 ]

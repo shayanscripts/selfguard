@@ -6,6 +6,46 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-08-09
+
+### Added
+
+- Fixed-clean-FPR evaluation API and CLI with validation-only threshold
+  selection, Wilson confidence intervals, realistic-prevalence precision,
+  per-stratum and hard-negative metrics.
+- Fail-closed cross-split checks for example IDs, source groups, and available
+  content hashes.
+- Production-oriented evaluation protocol and hard-negative taxonomy.
+- Deny-by-default pre-action tool boundary with scope checks, argument policy,
+  detector vetoes, verified approval for side effects, privacy-conscious audit
+  events, and fail-closed execution.
+- Protocol-4 release evaluation with 400 clean validation and test examples
+  and 1% Wilson-upper-bound FPR selection; both candidates failed the recall
+  gate and remain development-only.
+- Auditable pre-generation `PromptRiskDetector` signals and a v3 development
+  workflow combining prompt and response features with hard-negative mining.
+- V4 development workflow with character/word TF-IDF prompt modeling,
+  group-safe out-of-fold stacking, separate external-domain calibration, exact
+  cross-dataset overlap rejection, and privacy-safe row-level score exports.
+- Provider-independent `PromptInjectionPlugin` with allow/review/block states,
+  fail-closed detector and audit behavior, pre-call wrapping, privacy-conscious
+  audit events, and hash-verified `skops` model-bundle loading.
+- V5 development workflow with four text learners, soft-vote and stacked
+  candidates, exact stable top-k hard-negative selection, and plug-in bundle
+  export.
+
+### Changed
+
+- Made confidence-bound FPR selection the evaluator and CLI default; point-FPR
+  selection now requires an explicit exploratory opt-in.
+- Moved analytics hashing after all exports are written and verify the archive
+  member set, so fixed-FPR, runtime, and score files are covered.
+- Kept Signal 4 ablation-only: the protocol-4 run improved ranking AUC/AP but
+  reduced recall, F1, and effective-attack recall at the 1% confidence-bound
+  operating point while adding substantially higher latency.
+- Added conservative prevalence-adjusted precision based on recall's Wilson
+  lower bound and clean-FPR's Wilson upper bound.
+
 ## [0.1.0] - 2026-08-03
 
 ### Added

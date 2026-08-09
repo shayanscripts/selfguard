@@ -1,10 +1,15 @@
 # Security Policy
 
-## Research-preview status
+## Release-candidate status
 
-SELFGuard v0.1 is experimental post-generation monitoring software. It does not make an LLM, agent, tool, or application secure by itself, and a non-flagged response must not be treated as trusted or authorized.
+SELFGuard v0.2.0rc1 is experimental prompt-risk and post-generation monitoring
+software. It does not make an LLM, agent, tool, or application secure by
+itself, and a non-flagged prompt or response must not be treated as trusted or
+authorized.
 
-Only the latest `main` branch and the most recent tagged v0.1 release, if one exists, receive fixes. Older snapshots may be used for research reproduction but are not supported security boundaries.
+Only the latest `main` branch and the most recent tagged release candidate, if
+one exists, receive fixes. Older snapshots may be used for research
+reproduction but are not supported security boundaries.
 
 ## Reporting a vulnerability
 
@@ -25,7 +30,10 @@ Ordinary detector misses, false alarms, benchmark disagreements, and requests fo
 ## Deployment guidance
 
 - Run model and tool execution with least privilege, sandboxing, network restrictions, allowlists, validation, and explicit approval for consequential actions.
-- Apply controls before tools execute. SELFGuard scores are computed after response generation, so display suppression cannot reverse generation-time side effects.
+- Apply controls before tools execute. Prompt-risk checks can run before model
+  invocation; response signals are computed after generation, so display
+  suppression cannot reverse generation-time side effects.
+- When using `ActionBoundary`, keep the planner unable to execute tools directly. Supply identity, scopes, policies, handlers, detector results, and approval tokens only from trusted application components. The boundary is a reference enforcement primitive, not a substitute for authentication, credential isolation, sandboxing, or integration testing.
 - Treat all model text, logs, serialized artifacts, and calibration input as untrusted.
 - Do not deserialize untrusted `joblib`/pickle model artifacts; those formats can execute code while loading.
 - Store API keys in a secret manager or environment variables, never in notebooks, examples, checkpoints, or commits.

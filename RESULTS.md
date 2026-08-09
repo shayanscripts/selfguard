@@ -2,6 +2,74 @@
 
 ## Status and scope
 
+### V5 ensemble and plug-in development result (2026-08-09)
+
+V5 corrected exact top-k hard-negative mining, compared eight validation-tuned
+candidates, and exported a hash-verified prompt-only plug-in bundle. The
+validation-selected overall meta-model produced the strongest strict operating
+point: on the descriptive SEP-derived test it had precision 1.0000, recall
+0.6400, F1 0.7805, and 0 false positives among 400 clean examples. Its 95%
+Wilson clean-FPR upper bound was 0.9512%.
+
+The portable prompt-only candidate traded one clean false positive for higher
+recall. It achieved precision 0.9963, recall 0.6700, F1 0.8012, ROC AUC 0.9761,
+and average precision 0.9789, with a 1.4023% clean-FPR upper bound. It therefore
+missed the predeclared 1% upper-bound gate and remains a development candidate,
+not a promoted security control.
+
+| Candidate | Threshold | Precision | Recall | F1 | Clean FP / N | Clean-FPR upper bound | ROC AUC | AP |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Overall stacked meta-model | 0.614649 | 1.0000 | 0.6400 | 0.7805 | 0 / 400 | 0.9512% | 0.9790 | 0.9815 |
+| Portable prompt plug-in | 0.636647 | 0.9963 | 0.6700 | 0.8012 | 1 / 400 | 1.4023% | 0.9761 | 0.9789 |
+
+On the external deepset development test, the plug-in achieved precision
+0.9767, recall 0.7000, and F1 0.8155 at its domain threshold, with 1 false
+positive among 56 clean examples. The small clean sample gives a wide 9.45%
+upper confidence bound, so this is evidence of ranking and domain behavior, not
+a low-FPR production claim. Both test sets have been inspected and cannot be
+used to promote a later model.
+
+### V3 prompt/response development result (2026-08-09)
+
+The validation-selected combined hard-negative model retained zero observed
+false positives in 400 clean test rows and improved descriptive recall from
+9.50% to 12.25%, F1 from 0.1735 to 0.2183, ROC AUC from 0.8499 to 0.8920, and
+average precision from 0.8508 to 0.9013 relative to protocol-4 RF3. Its 95%
+clean-FPR upper bound remained 0.9512%. It detected only 49/400 injected rows,
+so it failed the predeclared 50% recall gate.
+
+The prompt-only model had 0% recall at its strict SEP validation threshold. On
+the external deepset test it ranked examples non-trivially (ROC AUC 0.7677,
+average precision 0.8062) but produced no positive predictions at the
+SEP-derived threshold. This demonstrates threshold calibration shift. V4 adds
+cross-domain text training and domain-specific development calibration, but
+neither the already-inspected SEP nor deepset test can provide promotion
+evidence.
+
+### Protocol-4 release gate (2026-08-09)
+
+The larger release run did not meet the predeclared gate. It used 1,000
+training pairs, 400 validation pairs, and 400 test pairs, with thresholds
+selected on validation by requiring the 95% Wilson upper bound on clean FPR to
+be at most 1%. The test set had 400 clean and 400 injected responses.
+
+| Model | Threshold | Precision | Recall | F1 | Clean FP / N | Clean-FPR upper bound | Effective-attack recall |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| RF3 | 0.951464 | 1.0000 | 0.0950 | 0.1735 | 0 / 400 | 0.009512 | 0.1390 |
+| RF4 | 0.968551 | 1.0000 | 0.0875 | 0.1609 | 0 / 400 | 0.009512 | 0.0772 |
+
+The gate required at least 50% injected recall as well as the FPR bound, so
+both candidates failed. RF4 improved ROC AUC from 0.8499 to 0.8676 and average
+precision from 0.8508 to 0.8749, but those ranking gains did not translate to a
+better strict operating point. The RF4 scoring path also had median latency of
+132.5 ms versus 13.1 ms for the response detector path. These are descriptive
+measurements from one Tesla T4 run, not general performance guarantees.
+
+The test has now been inspected. The v3 prompt/response notebook may use these
+scores for development diagnostics, but it labels all subsequent SEP test
+results as descriptive and cannot promote a detector from them. Promotion
+requires a newly frozen external evaluation with non-overlapping source groups.
+
 These are the canonical paired-ablation numbers available for the v0.1 research preview. They come from a **SEP-derived, fixed-system-prompt experiment** using Qwen2.5-0.5B-Instruct, seed 42, and greedy generation capped at 80 new tokens. They are not results for the full native SEP task: the experiment loaded SEP-derived examples but generated every response under one ShopCo system prompt instead of each row's original clean system prompt.
 
 The selected benchmark split was task- and witness-group-disjoint after filtering. That wording is intentionally narrower than “leakage-free”: exact/group separation does not rule out semantic overlap or pretraining contamination.
