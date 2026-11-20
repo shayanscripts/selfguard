@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+# SEP rows are not redistributed (no upstream licence); rebuild with build_sealed.py
+data/*.jsonl
+results/cache/
+runs_agentdojo/
+*.log

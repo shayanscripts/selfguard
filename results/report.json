@@ -1,0 +1,30 @@
+{
+ "n": 600,
+ "sealed_sha256": "f2a8adbec7ccc9c98b5cb485504b91b37eb0e0d8eb2d83d2ffd0278b95a90fc8",
+ "cache_sha256": "bc3014ab39fc0c9f02057c3faa1cdc9746477dcfc8664f02a54b69dbc85e117c",
+ "raw_asr_standard": 0.6216666666666667,
+ "residual_asr_watchword": 0.10166666666666667,
+ "residual_asr_routed": 0.10166666666666667,
+ "mcnemar": {
+  "b": 323,
+  "c": 11,
+  "p": 7.240035074673914e-81
+ },
+ "grounding_standard": 0.8266666666666667,
+ "grounding_watchword": 0.7216666666666667,
+ "grounding_routed": 0.8,
+ "grounding_diff_lower_bound": -0.03939978084268408,
+ "fpr_routed": 0.008333333333333333,
+ "fpr_routed_wilson_hi": 0.019357735522759142,
+ "fpr_watchword": 0.008333333333333333,
+ "utility_standard": 0.77,
+ "utility_routed": 0.7716666666666666,
+ "flagged_clean": 0.12666666666666668,
+ "flagged_attack": 1.0,
+ "criteria": {
+  "1_protection": true,
+  "2_quality": true,
+  "3_false_alarms": true
+ },
+ "passed": true
+}
