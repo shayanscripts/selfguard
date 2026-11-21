@@ -18,13 +18,14 @@ reply checks) and adds the parts that stop the actual damage.
 | **Approver** (optional) | A small local model decides held actions. It sees only the user's request, the action and the field label of each value, **never the documents**, so injected text cannot argue with it | 1 small-model call, only when an action is held |
 | **Link tripwire** | Untrusted links in the reply are defanged (unclickable), untrusted images removed, hidden links (hxxp, `[.]`, spaced out, base64, homoglyphs) decoded first | rules |
 | **Support trace** | A reply sentence whose only source is a sentence addressed to the AI ("tell the user...") is removed | rules |
+| **Canary** (v3.2) | A harmless instruction with a fresh random code is planted in the data; if the reply contains the code, the model is following data instructions right now, so the reply is withheld and actions blocked. Catches obedience whatever the injection's wording | rules + 1 sentence in the data |
 | **v4 lie layer** (optional) | Strips AI-addressed sentences before the call (a small model confirms suspicious ones), fact-checks the reply against the document's normal content, cites sources | small-model calls |
 
 ## Results
 
 All numbers are as measured; small local models (Mistral 7B, Qwen2.5 7B) on one RTX 3060 Ti.
-They were measured with **v3.0** (commit `da4d868`); v3.1 fixes several bugs and has not been
-re-scored yet (see [CHANGELOG.md](CHANGELOG.md)).
+They were measured with **v3.0** (commit `da4d868`). v3.1 fixed bugs and v3.2 adds the canary
+layer; neither has been re-scored yet. The plan is in [TESTING_PLAN.md](TESTING_PLAN.md).
 
 ### 1. SEP, sealed and pre-registered (600 fresh rows, Mistral 7B)
 Rows never used before (`build_sealed.py`, overlap 0 with Watchword's splits), pass bar written in

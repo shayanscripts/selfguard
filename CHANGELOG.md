@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.2.0.dev0 (2026-11-22)
+
+Not yet evaluated: see TESTING_PLAN.md. README results are still v3.0's.
+
+### Added
+- **Canary layer** (`selfguard3/canary.py`): a harmless instruction with a fresh random code is
+  planted in the untrusted data; if the reply contains the code, the model followed data
+  instructions during this call, so the reply is withheld and every action blocked. It watches
+  the model's behaviour, not the attacker's wording; no extra model call; it can only withhold.
+  On by default (`SelfGuard(canary=False)` turns it off). Adds one sentence to the data.
+- `SelfGuard.prepare()` returns the messages and that call's canary; `inspect(..., canary=...)`
+  checks it; `run()` wires both. `messages()` keeps the canary in `last_canary` for
+  single-threaded use. Smart routing is decided on the real data, before the canary is planted.
+- Evaluation: `eval/sep_v32.py` (SEP, no defence vs v3.1 vs v3.2, resumable, one-shot sealed
+  mode tied to `PREREGISTRATION_v3.2.md`), `build_sealed_v32.py` (fresh sealed split excluding
+  Watchword's and v3's rows), `eval/canary_small.py` (24-item smoke test), `eval/llm.py` (Ollama
+  or OpenAI-compatible calls, records model digests), `eval/collect_results.py` (one zip of all
+  results in Downloads). `eval/bipia_eval.py` now compares none / v3.1 / v3.2 (v4 optional).
+- `TESTING_PLAN.md`, `PREREGISTRATION_v3.2.md` (draft, finished before the sealed run).
+
+### Changed
+- `eval/agent_suite.py` passes each call's canary to both guards it checks with.
+
 ## 3.1.0 (2026-11-21)
 
 All results in the README were measured with **v3.0** (commit `da4d868`). The fixes below change
