@@ -43,7 +43,7 @@ class ActionLockElement(BasePipelineElement):
         if not messages or messages[-1]["role"] != "assistant" or not messages[-1].get("tool_calls"):
             return query, runtime, env, messages, extra_args
         system = " ".join(text_of(m) for m in messages if m["role"] == "system")
-        lock = ActionLock(TrustSet(system, query))
+        lock = ActionLock(TrustSet(system, query), task=query)
         kept, blocked = [], []
         st = ActionLockElement.stats
         for call in messages[-1]["tool_calls"]:

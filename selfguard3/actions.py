@@ -13,6 +13,33 @@ SENSITIVE_ACTION = re.compile(r"password|passcode|credential|secret|token|2fa|pe
 
 RISKY = ("send", "forward", "email", "mail", "pay", "transfer", "delete", "remove", "post", "share", "upload", "exec", "run")
 
+# Word stems in the user's request that license each kind of risky action.
+_MESSAGE = ("send", "email", "e-mail", "mail", "repl", "respond", "forward", "messag", "writ", "contact", "notif")
+_MONEY = ("pay", "transfer", "wire", "send", "refund", "settle", "reimburs")
+_DELETE = ("delet", "remov", "eras", "clear", "clean", "purg", "discard", "trash", "cancel", "unsubscrib")
+_PUBLISH = ("post", "publish", "shar", "upload", "send")
+_EXEC = ("run", "exec", "launch", "install", "script", "command")
+LICENSE = {"send": _MESSAGE + _MONEY, "forward": _MESSAGE, "email": _MESSAGE, "mail": _MESSAGE,
+           "pay": _MONEY, "transfer": _MONEY, "delete": _DELETE, "remove": _DELETE, "post": _PUBLISH,
+           "share": _PUBLISH, "upload": _PUBLISH, "exec": _EXEC, "execute": _EXEC, "run": _EXEC,
+           "invite": ("invit", "add", "onboard")}
+assert set(RISKY) <= set(LICENSE)
+
+
+def _name_words(name: str) -> list[str]:
+    """send_money / sendMoney / send-money -> ['send', 'money']"""
+    return [w.lower() for w in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])", name or "")]
+
+
+def unlicensed_risky(name: str, task: str) -> list[str]:
+    """Risky verbs in the action name that nothing in the user's request asks for."""
+    verbs = [w for w in _name_words(name) if w in LICENSE]
+    if not verbs:
+        return []
+    asked = re.findall(r"[a-z-]+", (task or "").lower())
+    stems = {s for v in verbs for s in LICENSE[v]}
+    return [] if any(w.startswith(s) for w in asked for s in stems) else verbs
+
 
 @dataclass
 class Verdict:
@@ -22,9 +49,10 @@ class Verdict:
 
 
 class ActionLock:
-    def __init__(self, trust: TrustSet, approver=None):
+    def __init__(self, trust: TrustSet, approver=None, task: str | None = None):
         self.trust = trust
         self.approver = approver  # callable(name, args, verdict) -> bool, or None
+        self.task = task          # the user's request; None skips the risky-verb rule (v3.0 behaviour)
 
     def check(self, name: str, args: dict) -> Verdict:
         found = set()
@@ -35,6 +63,8 @@ class ActionLock:
             return Verdict("confirm", bad, "uses values not found in trusted text")
         if SENSITIVE_ACTION.search(name or ""):
             return Verdict("confirm", [], "changes credentials, access or settings")
+        if self.task is not None and unlicensed_risky(name, self.task):
+            return Verdict("confirm", [], "risky action the user's request does not ask for")
         return Verdict("allow")
 
     def decide(self, name: str, args: dict) -> Verdict:

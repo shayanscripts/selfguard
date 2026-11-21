@@ -5,7 +5,10 @@ import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
-from selfguard3 import SelfGuard, WW  # noqa: E402
+from selfguard3 import SelfGuard  # noqa: E402
+# The SEP scoring harness (metrics, cached generations) lives in the Watchword repo;
+# the SelfGuard library itself no longer needs it.
+WW = os.environ.get("WATCHWORD_PATH", os.path.join(HERE, "..", "watchword"))
 sys.path.insert(0, WW)
 from eval import metrics  # noqa: E402
 from eval.ollama_runner import load_cache, read_rows  # noqa: E402

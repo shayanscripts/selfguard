@@ -11,9 +11,12 @@ AI_ADDRESSED = re.compile(
     r"\bwhen (?:you )?(?:summari[sz]\w*|repl\w*|respond\w*|answer\w*)|in your (?:reply|summary|answer|response|output)|"
     r"\b(?:say|state|mention|claim|report|write) that\b|ignore (?:all |the |any )?(?:previous|prior|above|earlier)|"
     r"\binstead(?:,| of)\b.*\b(?:say|tell|write|answer)", re.I)
+# Claim-bearing tokens: numbers/amounts/times, day and month names (any case), and
+# Capitalised words (names, places). Only the first two ignore case: with a global
+# re.I the last branch matched every word of 3+ letters.
 CLAIM_TOKEN = re.compile(
-    r"\$?\d[\d,.:]*\s?(?:am|pm|%)?|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|"
-    r"april|may|june|july|august|september|october|november|december)\b|\b[A-Z][a-z]{2,}\b", re.I)
+    r"\$?\d[\d,.:]*\s?(?i:am|pm|%)?|\b(?i:monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|"
+    r"april|may|june|july|august|september|october|november|december)\b|\b[A-Z][a-z]{2,}\b")
 STOP = {"the", "this", "that", "you", "your", "user", "and", "please", "note", "assistant", "summary", "email", "hi", "hello",
         "thanks", "regards", "best", "dear", "sam"}
 WRAPPER = re.compile(

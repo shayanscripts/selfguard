@@ -23,6 +23,8 @@ reply checks) and adds the parts that stop the actual damage.
 ## Results
 
 All numbers are as measured; small local models (Mistral 7B, Qwen2.5 7B) on one RTX 3060 Ti.
+They were measured with **v3.0** (commit `da4d868`); v3.1 fixes several bugs and has not been
+re-scored yet (see [CHANGELOG.md](CHANGELOG.md)).
 
 ### 1. SEP, sealed and pre-registered (600 fresh rows, Mistral 7B)
 Rows never used before (`build_sealed.py`, overlap 0 with Watchword's splits), pass bar written in
@@ -95,6 +97,19 @@ with the lock.
 - The approver prompt's examples were written against our own suite.
 - SEP results use Mistral 7B; AgentDojo and BIPIA use Qwen2.5 7B.
 
+## Install
+
+```bash
+pip install .            # standard library only; no Watchword checkout needed
+```
+
+Watchword's engine (layouts, instruction finder, obedience, provenance and leak checks) is
+vendored in `selfguard3/_watchword` as byte-identical copies of Watchword at its freeze
+(commit `b51be8bf`, the code the sealed test was scored with). `tests/test_vendored.py` checks
+their SHA-256 hashes against `frozen_config.json` and, when a Watchword checkout is present,
+that decisions match the original exactly. `layout="routed"` gives the pre-registered smart
+routing; the default stays `"displaced"`.
+
 ## Use
 
 ```python
@@ -113,7 +128,7 @@ out.text, out.safe, out.actions, out.findings
 
 ## Reproduce
 ```bash
-python -m unittest tests.test_modules          # unit tests (model tests: MINICHECK=1, V4MODELS=1)
+python -m unittest tests.test_modules tests.test_vendored   # unit tests (model tests: MINICHECK=1, V4MODELS=1)
 python build_sealed.py                         # needs the SEP archive; refuses to overwrite
 python score_v3.py && python eval/sep_full.py  # one-shot sealed scoring
 python eval/agentdojo_run.py banking           # AD_CONDITIONS=none,sg3,approver
@@ -121,6 +136,9 @@ python eval/bipia_eval.py                      # BIPIA e-mail split in ../bipia
 python eval/agent_suite.py
 ```
 SEP rows are not redistributed; `build_sealed.py` rebuilds the split from the public archive.
+The sealed-test scripts (`build_sealed.py`, `score_v3.py`, `eval/sep_full.py`) are kept unchanged
+as the record of the pre-registered run: they still need a Watchword checkout (`WATCHWORD_PATH`)
+for its SEP harness and check its code against the freeze. The library does not.
 
 ## Related work
 ASIDE and DRIP (training-time separation), Spotlighting, CaMeL and Dual-LLM, MELON, Sonar (sentence

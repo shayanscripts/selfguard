@@ -1,25 +1,25 @@
 """SelfGuard v3: layered prompt-injection protection around any LLM.
 
-  layout  - Watchword displaced layout (data in a low-authority turn)
+  layout  - displaced / standard / routed (data in a low-authority turn)
+  checks  - Watchword's obedience, provenance and leak checks (vendored, frozen)
   M1-M4   - values, action locks + cashier, reply tripwire, support trace
 No training of anything, no model internals, no extra LLM call, no added prompt text.
+Standard library only: Watchword's engine is vendored in ``selfguard3/_watchword``.
 """
 import json
-import os
 import re
-import sys
 from dataclasses import dataclass, field
 
 from .actions import ActionLock, Verdict
+from .checks import LAYOUTS, ReplyChecks, build_messages
 from .reply import Tripwire
 from .trace import SupportTrace
 from .values import TrustSet, deobfuscate, values
 
-WW = os.environ.get("WATCHWORD_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "watchword"))
-if WW not in sys.path:
-    sys.path.insert(0, WW)
+__version__ = "3.1.0"
 
-ACTION_RE = re.compile(r"ACTION\s+(\w+)\s+(\{.*?\})", re.S)
+ACTION_RE = re.compile(r"ACTION\s+(\w+)\s+(?=\{)")
+_JSON = json.JSONDecoder()
 
 
 @dataclass
@@ -37,32 +37,39 @@ def parse_actions(reply: str):
     out = []
     for m in ACTION_RE.finditer(reply):
         try:
-            out.append((m.group(1), json.loads(m.group(2))))
-        except Exception:
-            to = re.search(r'"to"\s*:\s*"([^"]+)"', m.group(2))
-            out.append((m.group(1), {"to": to.group(1).strip("<> ")} if to else {"raw": m.group(2)}))
+            args, _ = _JSON.raw_decode(reply, m.end())  # full JSON, nested objects included
+            if not isinstance(args, dict):
+                raise ValueError
+        except ValueError:
+            # Unparseable: keep everything up to the next ACTION so the lock checks every value
+            # in it (fail closed), instead of guessing at one field.
+            nxt = ACTION_RE.search(reply, m.end())
+            args = {"raw": reply[m.end():nxt.start() if nxt else len(reply)]}
+        out.append((m.group(1), args))
     return out
 
 
 class SelfGuard:
     def __init__(self, *, layout="displaced", trace_backend="lexical", allow_domains=(), approver=None,
                  obedience=True, obedience_threshold=0.8):
+        if layout not in LAYOUTS:
+            raise ValueError(f"unknown layout {layout!r}; expected one of {LAYOUTS}")
         self.layout = layout
         self.trace = SupportTrace(trace_backend)
         self.allow_domains = allow_domains
         self.approver = approver
         self.obedience = obedience
         self.th = obedience_threshold
+        self.checks = ReplyChecks(obedience_threshold) if obedience else None
 
     def messages(self, task, data, system=None):
-        from watchword.layout import build
-        return build(task, list(data), system, self.layout)
+        return build_messages(task, list(data), system, self.layout)
 
     def inspect(self, reply, *, task, data=(), system=None) -> Outcome:
         data_s = "\n\n".join(data)
         trust = TrustSet(system or "", task, allow_domains=self.allow_domains)
         out = Outcome(text=reply, raw=reply)
-        lock = ActionLock(trust, self.approver)
+        lock = ActionLock(trust, self.approver, task=task)
         for name, args in parse_actions(reply):
             out.actions.append((name, args, lock.decide(name, args)))
         text, inj = self.trace.clean(reply, data_s)
@@ -70,13 +77,11 @@ class SelfGuard:
         tw = Tripwire(trust).clean(text, data_s)
         out.text, out.safe = tw.text, tw.safe
         out.findings += tw.findings
-        if self.obedience:
-            from watchword import Watchword
-            ww = Watchword(layout=self.layout, obedience_threshold=self.th)
-            r = ww.inspect(reply, task=task, data=list(data), system=system)
+        if self.checks:
+            r = self.checks(reply, task=task, data=data, system=system)
             if not r.allowed:
                 out.safe = False
-                out.findings.append(("obedience", getattr(r, "score", None)))
+                out.findings += r.findings
         return out
 
     def run(self, llm, *, task, data=(), system=None, **params) -> Outcome:
