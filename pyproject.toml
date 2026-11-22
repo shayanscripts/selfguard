@@ -9,17 +9,17 @@ description = "Layered indirect prompt-injection protection around any LLM: no t
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
-dependencies = []  # standard library only; Watchword's engine is vendored in selfguard3/_watchword
+dependencies = []  # standard library only
 
 [project.optional-dependencies]
 minicheck = ["torch", "transformers"]  # SupportTrace("minicheck") backend only
 agentdojo = ["agentdojo", "openai"]     # eval/agentdojo_run.py only
 
 [tool.setuptools]
-packages = ["selfguard3", "selfguard3._watchword"]
+packages = ["selfguard3", "selfguard3.engine"]
 
 [tool.setuptools.package-data]
-"selfguard3._watchword" = ["frozen_config.json"]
+"selfguard3.engine" = ["frozen_config.json"]
 
 [tool.setuptools.dynamic]
 version = {attr = "selfguard3.__version__"}

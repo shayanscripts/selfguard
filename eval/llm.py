@@ -8,6 +8,7 @@
 Deterministic settings: temperature 0 and a fixed seed. Retries 3 times with backoff, then
 raises.
 """
+import http.client
 import json
 import time
 import urllib.error
@@ -47,7 +48,9 @@ class LLM:
                 if self.api == "ollama":
                     return d["message"]["content"] or ""
                 return d["choices"][0]["message"]["content"] or ""
-            except (urllib.error.URLError, TimeoutError, KeyError, ValueError):
+            # OSError covers URLError, timeouts and dropped connections (ConnectionResetError);
+            # HTTPException covers RemoteDisconnected and other broken responses
+            except (OSError, http.client.HTTPException, KeyError, ValueError):
                 if wait is None:
                     raise
                 time.sleep(wait)
@@ -66,6 +69,6 @@ class LLM:
                 if m:
                     info["digest"] = m.get("digest")
                     info["details"] = m.get("details")
-            except (urllib.error.URLError, TimeoutError, ValueError):
+            except (OSError, http.client.HTTPException, ValueError):
                 info["digest"] = None
         return info

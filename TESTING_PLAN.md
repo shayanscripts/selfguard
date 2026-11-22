@@ -1,27 +1,28 @@
-# SelfGuard v3.2: testing plan
+# SelfGuard v3.4: testing plan
 
-Everything to run on the GPU PC (RTX 3060 Ti), in order, and how to send the results back.
-Commands are for **PowerShell** in the repo folder. Times are rough estimates for 7B models.
+Everything to run, in order. Commands are for **PowerShell** in the repo folder on the GPU PC
+(RTX 3060 Ti). Times are rough estimates for 7B models.
 
 | Step | What | Model | Time | Output |
 |---|---|---|---|---|
 | 1 | Setup and unit tests | - | 20 min | test summary |
-| 2 | Smoke test (canary_small, 24 items) | Qwen2.5 7B | 10 min | `results/canary_small_*` |
-| 3 | SEP dev split (600 rows, not sealed) | Mistral 7B | 3-5 h | `results/sep_v32_dev_*` |
-| 4 | Build the fresh sealed split | - | 5 min | `data/sealed_v32.jsonl` + hash |
-| 5 | Finish and commit the pre-registration | - | 15 min | `PREREGISTRATION_v3.2.md` |
-| 6 | **SEP sealed, one shot** | Mistral 7B | 3-5 h | `results/sep_v32_sealed_*` |
-| 7 | BIPIA e-mail QA (50 e-mails) | Qwen2.5 7B | 1-2 h | `results/bipia_v32_*` |
+| 2 | Smoke test (24 items; none / v3.1 / v3.3 / v3.4) | Qwen2.5 7B | 15 min | `results/smoke_*` |
+| 3 | SEP dev split (600 rows; none / v3.1 / v3.3 / routed / v3.4) | Mistral 7B | 4-5 h | `results/sep_v34_dev_*` |
+| 4 | Choose the echo threshold and witness match on dev; build the fresh sealed split | - | 10 min | `data/sealed_v34.jsonl` + hash |
+| 5 | Finish, commit and push the pre-registration | - | 15 min | `PREREGISTRATION_v3.4.md` |
+| 6 | **SEP sealed, one shot** (none / v3.1 / routed / v3.4) | Mistral 7B | 3 h | `results/sep_v34_sealed_*` |
+| 7 | BIPIA e-mail QA (50 e-mails; none / v3.1 / v3.3 / v3.4) | Qwen2.5 7B | 2-3 h | `results/bipia_v34_*` |
 | 8 | AgentDojo banking + slack (regression check) | Qwen2.5 7B | 2-4 h | `results/agentdojo_*` |
-| 9 | Collect everything into one zip | - | 1 min | `Downloads\selfguard-v3.2-results-*.zip` |
+| 9 | Own agent suite | Qwen2.5 7B | 15 min | `results/agent_suite.json` |
+| 10 | Collect everything into one zip | - | 1 min | `Downloads\selfguard-v3.4-results-*.zip` |
 
 **Ground rules**
-- Do steps 3 and 4-6 in this order. Never open `data/sealed_v32.jsonl` or the sealed cache.
+- Never open `data/sealed_v34.jsonl` or the sealed cache; scripts print counts and metrics only.
 - Step 6 runs **once**. If it fails, it failed: report it, do not change code and rerun.
-- No code changes after step 5's commit. If you must change something, it goes in the
-  pre-registration first.
-- Leave the PC on and awake during long steps; every script resumes if stopped, except that the
-  sealed scorer must not be restarted after it has written its report.
+- No code changes after step 5's commit. Any change goes in the pre-registration first.
+- Run nothing else on the GPU during step 6. Keep the PC awake during long steps; every script
+  resumes from its cache if stopped, except that the sealed scorer refuses to run twice.
+- Results are not committed; step 10 collects them into a zip.
 
 ---
 
@@ -33,74 +34,57 @@ Needs Git, Python 3.11+, and [Ollama](https://ollama.com).
 ollama pull mistral:7b-instruct
 ollama pull qwen2.5:7b-instruct
 ollama list                          # note both digests
+python -m unittest discover -s tests
 ```
+Expect `OK (skipped=2)` (the two skips need extra models).
 
-Folder layout (Watchword is needed for its SEP data scripts, and BIPIA for its e-mails):
+BIPIA: from https://github.com/microsoft/BIPIA copy `benchmark\email\test.jsonl` and
+`benchmark\text_attack_test.json` into `..\bipia`.
 
-```
-<parent>\selfguard-v3.2   (this repo)
-<parent>\watchword        git clone https://github.com/shayanscripts/watchword
-<parent>\bipia            from https://github.com/microsoft/BIPIA: copy benchmark\email\test.jsonl
-                          and benchmark\text_attack_test.json into this folder
-```
+## 2. Smoke test
 
 ```powershell
-python -m unittest tests.test_modules tests.test_vendored tests.test_canary
+python eval/smoke_test.py --model qwen2.5:7b-instruct
 ```
-Expect `OK (skipped=2)`. Anything else: stop and send me the output.
-
-## 2. Smoke test (10 min)
-
-```powershell
-python eval/canary_small.py --model qwen2.5:7b-instruct
-```
-24 self-made items, to check the whole pipeline works with Ollama before the long runs. Not a
-result to report.
+24 self-made items, to check the pipeline end to end. Not a result to report.
 
 ## 3. SEP dev split (not sealed)
 
-Get the SEP archive and rebuild Watchword's dev split (deterministic; rows are not in git):
+Download https://github.com/egozverev/Should-It-Be-Executed-Or-Processed/archive/refs/heads/main.zip
+and save it in this folder as `Should-It-Be-Executed-Or-Processed-main.zip`.
 
 ```powershell
-# download https://github.com/egozverev/Should-It-Be-Executed-Or-Processed/archive/refs/heads/main.zip
-# save it as Should-It-Be-Executed-Or-Processed-main.zip in <parent>\watchword and in this repo
-(Get-FileHash .\Should-It-Be-Executed-Or-Processed-main.zip).Hash
+python eval/sep_splits.py dev        # checks the archive hash and every earlier split's hash
+python eval/sep_eval.py --rows data/sep/dev.jsonl --limit 30     # quick check
+python eval/sep_eval.py --rows data/sep/dev.jsonl                # full dev
+python eval/leak_analysis.py --rows data/sep/dev.jsonl --cache results/cache/sep_dev_mistral_7b-instruct.jsonl
 ```
-The hash must be `275F3536FC89D0AA99D10E14D6B7313A3258092F002B966E2BDFB951CC66CC19`. If it is
-not, the SEP repo has changed since the freeze: stop and tell me (do not continue with a
-different archive).
+If `sep_splits.py` reports a hash mismatch, stop: the archive changed since the freeze.
+Generations resume from the cache if stopped. An older cache with identical prompts can be reused
+with `--legacy-cache` (e.g. `results\cache\sep_v32_dev_mistral_7b-instruct.jsonl`).
+
+## 4. Choose settings on dev, then build the fresh sealed split
+
+From the dev report, choose and write into the pre-registration:
+- the echo threshold (`ECHO_THRESHOLD` in `eval/sep_eval.py`; 0.3 now),
+- the witness match for the criteria (`WITNESS_MATCH`: `substring`, SEP's grader, or
+  `whole_word`).
+Change the constants in `eval/sep_eval.py` to match, then:
 
 ```powershell
-cd ..\watchword
-python eval/split_sep.py --zip Should-It-Be-Executed-Or-Processed-main.zip
-cd ..\selfguard-v3.2
-python eval/sep_v32.py --rows ..\watchword\data\sep\dev.jsonl --limit 30     # quick check first
-python eval/sep_v32.py --rows ..\watchword\data\sep\dev.jsonl                # full dev, 600 rows
-```
-9 replies per row (3 conditions x no defence / v3.1 / v3.2), 5,400 in total; it resumes if
-stopped. This tells us what to expect, and is where any problem should show up. If the dev
-result makes you want to change something, change it now and write it in the pre-registration.
-
-## 4. Build the fresh sealed split
-
-```powershell
-$env:WATCHWORD_PATH = (Resolve-Path ..\watchword).Path
-$env:SEP_ZIP = ".\Should-It-Be-Executed-Or-Processed-main.zip"
-python build_sealed.py          # only if data\sealed_v3.jsonl is missing; deterministic
-python build_sealed_v32.py --dry-run
-python build_sealed_v32.py
+python eval/sep_splits.py sealed --dry-run
+python eval/sep_splits.py sealed
 ```
 It prints counts and a SHA-256 only. Copy the SHA-256.
 
 ## 5. Finish the pre-registration, then commit and push
 
-Open `PREREGISTRATION_v3.2.md` and fill in every `FILL-IN`:
-the date, the sealed SHA-256 (replace `FILL-IN-AFTER-BUILD`), the Mistral digest from
-`ollama list`, and any change made after the dev run ("none" if none). Remove the DRAFT box.
+Fill in every `FILL-IN` in `PREREGISTRATION_v3.4.md` (date, sealed SHA-256, Mistral digest,
+chosen settings, changes after dev) and remove the DRAFT box.
 
 ```powershell
-git add PREREGISTRATION_v3.2.md
-git commit -m "Pre-register v3.2 sealed SEP test"
+git add PREREGISTRATION_v3.4.md eval/sep_eval.py
+git commit -m "Pre-register v3.4 sealed SEP test"
 git push
 ```
 The push time on GitHub is the proof it was written before the sealed run.
@@ -108,24 +92,23 @@ The push time on GitHub is the proof it was written before the sealed run.
 ## 6. SEP sealed, one shot
 
 ```powershell
-python eval/sep_v32.py --sealed
+python eval/sep_eval.py --sealed
 ```
-It checks the hash against the pre-registration and refuses if a sealed report already exists.
-If it is interrupted during generation, run the same command again: it resumes from the cache.
+Checks the hash against the pre-registration and refuses if a sealed report already exists. If
+interrupted during generation, run the same command again: it resumes from the cache.
 
 ## 7. BIPIA
 
 ```powershell
 python eval/bipia_eval.py --bipia ..\bipia --model qwen2.5:7b-instruct --n 50
 ```
-50 e-mails, each clean + 2 misinformation + 2 scam attacks (100 attacks per category). The
-judge is the same model; add `--judge mistral:7b-instruct` for an independent judge if time
-allows (a second run, same command plus that flag and `--out results\bipia_v32_judge_mistral.json`).
+50 e-mails, each clean + 2 misinformation + 2 scam attacks. The judge is the same model; add
+`--judge mistral:7b-instruct --out results\bipia_v34_judge_mistral.json` for an independent judge.
 
 ## 8. AgentDojo (regression check)
 
-The canary is not used in the agent pipeline, so v3.2 should match v3.1 here; this checks
-nothing broke and shows run-to-run variation.
+The agent pipeline uses the action lock only (no routing or echo strip), so v3.4 should match
+v3.0 here; this checks nothing broke and shows run-to-run variation.
 
 ```powershell
 pip install agentdojo openai
@@ -134,17 +117,20 @@ python eval/agentdojo_run.py banking
 python eval/agentdojo_run.py slack
 ```
 
-## 9. Collect and export
+## 9. Own agent suite
+
+```powershell
+python eval/agent_suite.py
+```
+
+## 10. Collect and export
 
 ```powershell
 python eval/collect_results.py
 ```
-Writes `selfguard-v3.2-results-<date>-<time>.zip` to your **Downloads** folder: a combined
-`RESULTS.md`, `environment.json` (GPU, Python, git commit, Ollama model digests), every result
-file, and the raw SEP replies. It never includes `data\` (SEP rows stay private). If the zip is
-too big to send, run `python eval/collect_results.py --no-cache`.
-
-Send me the zip (and the output of any step that failed).
+Writes `selfguard-v3.4-results-<date>-<time>.zip` to **Downloads**: `RESULTS.md`,
+`environment.json` (GPU, Python, git commit, Ollama digests), every result file and the raw SEP
+replies. Never includes `data\`. Use `--no-cache` if the zip is too big.
 
 ---
 
@@ -152,9 +138,10 @@ Send me the zip (and the output of any step that failed).
 
 | Result | Question |
 |---|---|
-| SEP sealed, v3.2 vs no defence (C1) | Does v3.2 cut attack success, with the 95% upper bound at or below 5%? |
-| SEP sealed, v3.2 vs v3.1 (secondary) | Does the canary add protection on top of v3.1? |
+| SEP sealed, v3.4 vs no defence (C1) | Does v3.4 cut attack success, with the 95% upper bound at or below 5%? |
+| SEP sealed, v3.4 vs v3.1 (secondary) | Does echo strip + routing add protection on top of v3.1? |
 | SEP grounding and withheld (C2, C3) | Does it cost answer quality or false alarms? |
-| Canary fire rates | Does the canary fire on clean data (false alarms) and when the model obeys? |
+| Clean replies echo-stripped | How often does echo strip remove a sentence from a correct answer? |
+| SEP dev, v3.3 | The canary's false alarms (the dev finding) |
 | BIPIA | Same questions on e-mail QA with lies and scams, and correct-answer rate |
-| AgentDojo | Did anything regress in agent tasks? |
+| AgentDojo, agent suite | Did anything regress in agent tasks? |

@@ -16,9 +16,9 @@ g = SelfGuard(trace_backend="lexical")
 res = []
 for row, (kind, task, data) in zip(rows, cases()):
     g.approver = lambda n, a, v, t=task, d=data: pa(t, n, a, v, d)
-    o = g.inspect(row["ww_reply"], task=task, data=[data], system=SYSTEM)
+    o = g.inspect(row["guarded_reply"], task=task, data=[data], system=SYSTEM)
     allowed = [a for _, a, v in o.actions if v.decision == "allow"]
-    res.append({"kind": kind, "harm": harm(kind, o.text if o.safe else "", row["ww_reply"], allowed),
+    res.append({"kind": kind, "harm": harm(kind, o.text if o.safe else "", row["guarded_reply"], allowed),
                 "acts": [(a.get("to"), v.decision) for _, a, v in o.actions]})
 total_actions = sum(len(r["acts"]) for r in res)
 print(f"approver consulted {pa.calls} times out of {total_actions} actions in {len(res)} cases")

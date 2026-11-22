@@ -1,7 +1,5 @@
-"""Reply-side checks from Watchword, run directly (no Watchword object).
-
-Same decision as ``watchword.Watchword(layout, obedience_threshold).inspect``
-with no secrets and no tool allowlist, which is how SelfGuard always called it:
+"""Reply-side checks of the frozen engine (selfguard3/engine), with no secrets and no tool
+allowlist:
 
   1. obedience: the reply carries out an instruction found in a data item
      (highest score over the items, withheld at ``threshold``);
@@ -9,13 +7,13 @@ with no secrets and no tool allowlist, which is how SelfGuard always called it:
   3. leak: the reply reproduces system-prompt text.
 
 Built once per SelfGuard instance; options are validated at construction.
-``tests/test_vendored.py`` checks parity with the original Watchword.
+``tests/test_engine.py`` checks the decisions against the recorded freeze.
 """
 from dataclasses import dataclass, field
 
-from ._watchword import extract, layout, leak, obedience, provenance
+from .engine import extract, layout, leak, obedience, provenance
 
-# Watchword's frozen configuration (eval/frozen_config.json at its freeze).
+# the engine's frozen configuration (engine/frozen_config.json)
 FROZEN_THRESHOLD = 0.8
 FROZEN_OPTIONS = {"USE_RESTATEMENT": True, "USE_ORPHAN": False, "USE_MARKED_NOVEL": False,
                   "USE_SINGLE_NOVEL": False, "USE_ORPHAN_POSITIONAL": False}

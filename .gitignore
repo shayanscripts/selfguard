@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
-# SEP rows are not redistributed (no upstream licence); rebuild with build_sealed.py
-data/*.jsonl
-results/cache/
+# SEP rows are not redistributed (no upstream licence) and sealed rows must stay unread:
+# rebuild them with eval/sep_splits.py
+/data/
+/Should-It-Be-Executed-Or-Processed-main.zip
+# results and model replies are collected into a zip (eval/collect_results.py), not committed
+/results/
 runs_agentdojo/
 *.log

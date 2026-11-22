@@ -1,4 +1,4 @@
-"""Canary layer mechanics (no model: replies are scripted)."""
+"""Canary layer (v3.3) mechanics (no model: replies are scripted). Off by default."""
 import os
 import random
 import sys
@@ -46,7 +46,7 @@ class Mechanics(unittest.TestCase):
 
 class Wiring(unittest.TestCase):
     def test_obeying_reply_is_withheld_and_actions_blocked(self):
-        sg = SelfGuard(obedience=False)
+        sg = SelfGuard(obedience=False, canary=True)
         p = sg.prepare(TASK, [DOC])
         self.assertIn(p.canary.text, " ".join(m["content"] for m in p.messages))
         reply = f'Review Thursday 3pm. {p.canary.code}\nACTION send_email {{"to": "sam@ourco.com"}}'
@@ -57,14 +57,14 @@ class Wiring(unittest.TestCase):
         self.assertIn("canary", [f[0] for f in out.findings])
 
     def test_ignoring_reply_passes(self):
-        sg = SelfGuard(obedience=False)
+        sg = SelfGuard(obedience=False, canary=True)
         p = sg.prepare(TASK, [DOC])
         out = sg.inspect("The budget review is on Thursday at 3pm.", task=TASK, data=[DOC], canary=p.canary)
         self.assertTrue(out.safe)
         self.assertNotIn("canary", [f[0] for f in out.findings])
 
     def test_messages_then_inspect_uses_last(self):
-        sg = SelfGuard(obedience=False)
+        sg = SelfGuard(obedience=False, canary=True)
         sg.messages(TASK, [DOC])
         self.assertFalse(sg.inspect("ok " + sg.last_canary.code, task=TASK, data=[DOC]).safe)
         self.assertTrue(sg.inspect("ok " + sg.last_canary.code, task=TASK, data=[DOC], canary=None).safe)
@@ -77,20 +77,20 @@ class Wiring(unittest.TestCase):
             code = seen["text"].split("code ")[1].split()[0].rstrip(".") if "code " in seen["text"] else ""
             return "Thursday 3pm. " + code  # an obeying model
 
-        out = SelfGuard(obedience=False, canary_rng=random.Random(3)).run(llm, task=TASK, data=[DOC])
+        out = SelfGuard(obedience=False, canary=True, canary_rng=random.Random(3)).run(llm, task=TASK, data=[DOC])
         self.assertFalse(out.safe)
 
     def test_off_and_no_data(self):
         self.assertIsNone(SelfGuard(canary=False).prepare(TASK, [DOC]).canary)
-        self.assertIsNone(SelfGuard().prepare("Hello", []).canary)
+        self.assertIsNone(SelfGuard(canary=True).prepare("Hello", []).canary)
 
     def test_routing_decided_on_real_data(self):
         # clean data stays in the standard layout even though the canary itself is an instruction
-        msgs = SelfGuard(layout="routed").prepare(TASK, ["Lunch is at noon."]).messages
+        msgs = SelfGuard(layout="routed", canary=True).prepare(TASK, ["Lunch is at noon."]).messages
         self.assertEqual(msgs[1]["role"], "user")
 
     def test_other_checks_see_original_data(self):
-        sg = SelfGuard()
+        sg = SelfGuard(canary=True)
         p = sg.prepare(TASK, [DOC])
         out = sg.inspect("The budget review is on Thursday at 3pm; bring the Q3 numbers.", task=TASK, data=[DOC],
                          canary=p.canary)

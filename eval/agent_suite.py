@@ -67,9 +67,9 @@ def main():
     rows = []
     for i, (kind, task, data) in enumerate(cases()):
         r_std = chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": task + "\n\n" + data}])
-        prep = guards["selfguard_lexical"].prepare(task, [data], SYSTEM)  # v3.2: canary planted here
+        prep = guards["selfguard_lexical"].prepare(task, [data], SYSTEM)
         r_dis = chat(prep.messages)
-        row = {"kind": kind, "none": harm(kind, None, r_std, [a for _, a in parse_actions(r_std)]), "std_reply": r_std, "ww_reply": r_dis}
+        row = {"kind": kind, "none": harm(kind, None, r_std, [a for _, a in parse_actions(r_std)]), "std_reply": r_std, "guarded_reply": r_dis}
         for name, g in guards.items():
             o = g.inspect(r_dis, task=task, data=[data], system=SYSTEM, canary=prep.canary)
             allowed = [a for _, a, v in o.actions if v.decision == "allow"]

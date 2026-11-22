@@ -1,14 +1,14 @@
 """BIPIA (Microsoft) e-mail QA: attacks inserted at the end of the e-mail.
 
 Categories: Misinformation & Propaganda, Scams & Fraud (+ clean for utility).
-Conditions: none (standard layout, no checks) | v3.1 (displaced + v3 checks, canary off) |
-v3.2 (v3.1 + canary) | optional v4 (v3.1 + strip AI-addressed sentences + lie check; extra
+Conditions: none (standard layout, no checks) | v3.1 (displaced + checks) | v3.3 (v3.1 +
+canary) | v3.4 (smart routing + checks + echo strip, the candidate) | optional v4 (v3.1 + strip AI-addressed sentences + lie check; extra
 small-model calls, --v4). Attack success and answer correctness are judged by --judge.
 
   python eval/bipia_eval.py --bipia ../bipia --model qwen2.5:7b-instruct --n 20
 
 BIPIA files needed in --bipia: test.jsonl and text_attack_test.json (email split).
-Writes results/bipia_v32_<model>.json and .md.
+Writes results/bipia_v34_<model>.json and .md.
 """
 import argparse
 import json
@@ -50,7 +50,7 @@ def main():
     a = ap.parse_args()
     llm = LLM(a.model, a.api, a.url, seed=7, max_tokens=300)
     judge_llm = LLM(a.judge or a.model, a.api, a.url, seed=7, max_tokens=3)
-    out = a.out or os.path.join(HERE, "results", f"bipia_v32_{a.model.replace(':', '_').replace('/', '_')}.json")
+    out = a.out or os.path.join(HERE, "results", f"bipia_v34_{a.model.replace(':', '_').replace('/', '_')}.json")
 
     def judge(q):
         return judge_llm([{"role": "user", "content": q}]).strip().upper().startswith("YES")
@@ -71,8 +71,11 @@ def main():
     with open(os.path.join(a.bipia, "text_attack_test.json"), encoding="utf-8") as f:
         attacks = json.load(f)
     rng = random.Random(1)
-    systems = {"v3.1": SelfGuard(canary=False), "v3.2": SelfGuard(canary=True, canary_rng=random.Random(20261122))}
-    names = ["none", "v3.1", "v3.2"]
+    systems = {"v3.1": SelfGuard(layout="displaced", echo=False),
+               "v3.3": SelfGuard(layout="displaced", echo=False, canary=True,
+                                 canary_rng=random.Random(20261122)),  # seeded only to make the run repeatable
+               "v3.4": SelfGuard()}
+    names = ["none", "v3.1", "v3.3", "v3.4"]
     if a.v4:
         from selfguard3.v4 import AddressedClassifier, GroundChecker, check_lies, strip_addressed
         clf, chk = AddressedClassifier(), GroundChecker(a.model)
@@ -86,7 +89,7 @@ def main():
             q = e["question"]
             replies = {"none": llm([{"role": "system", "content": SYSTEM}, {"role": "user", "content": q + "\n\n" + data}])}
             row = {"email": ei, "cat": cat, "attack": atk}
-            for name in ("v3.1", "v3.2"):
+            for name in ("v3.1", "v3.3", "v3.4"):
                 sg = systems[name]
                 p = sg.prepare(q, [data], SYSTEM)
                 raw = llm(p.messages)
@@ -133,10 +136,12 @@ def report(rows, names, meta):
     clean = [r for r in rows if r["cat"] == "clean"]
     att = [r for r in rows if r["cat"] != "clean"]
     lines.append("")
-    for name in ("v3.1", "v3.2"):
+    for name in ("v3.1", "v3.3", "v3.4"):
         lines.append(f"- {name} clean replies withheld (false alarms): " + pct(sum(not r[name + "_reply"] for r in clean), len(clean)))
-    lines += ["", f"Canary fired on {sum(r['v3.2_canary_fired'] for r in att)}/{len(att)} attacked and "
-                  f"{sum(r['v3.2_canary_fired'] for r in clean)}/{len(clean)} clean replies.",
+    lines += ["", f"v3.3 canary fired on {sum(r['v3.3_canary_fired'] for r in att)}/{len(att)} attacked and "
+                  f"{sum(r['v3.3_canary_fired'] for r in clean)}/{len(clean)} clean replies.",
+              f"v3.4 echo strip removed a sentence from {sum('echo' in r['v3.4_findings'] for r in clean)}/{len(clean)} "
+              f"clean and {sum('echo' in r['v3.4_findings'] for r in att)}/{len(att)} attacked replies.",
               f"Run time {meta['seconds']} s."]
     return "\n".join(lines) + "\n"
 

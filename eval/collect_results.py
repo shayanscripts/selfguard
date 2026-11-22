@@ -1,6 +1,6 @@
-"""Compile every v3.2 test result into one zip in your Downloads folder, ready to export.
+"""Compile every SelfGuard test result into one zip in your Downloads folder, ready to export.
 
-  python eval/collect_results.py                 # -> ~/Downloads/selfguard-v3.2-results-<date>-<time>.zip
+  python eval/collect_results.py                 # -> ~/Downloads/selfguard-v3.4-results-<date>-<time>.zip
   python eval/collect_results.py --no-cache      # leave out raw generation caches (smaller)
   python eval/collect_results.py --out D:\\exports
 
@@ -24,11 +24,8 @@ import zipfile
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
-REPORT_GLOBS = ["sep_v32_*", "bipia_v32_*", "agentdojo_*", "agent_suite*", "canary_small*"]
-V3_ORIGINAL = {"agent_suite.json", "agent_suite_approver.json", "bipia.json", "report.json", "report.md",
-               "sep_full.json", "agentdojo_banking_approver_qwen2.5_7b-instruct.json",
-               "agentdojo_banking_qwen2.5_7b-instruct.json", "agentdojo_banking_sg3_approver_qwen2.5_7b-instruct.json",
-               "agentdojo_slack_qwen2.5_7b-instruct.json", "agentdojo_slack_sg3_approver_qwen2.5_7b-instruct.json"}
+# every report the eval scripts write (v3.0's results live in archive/v3.0/results)
+REPORT_GLOBS = ["sep_*", "bipia_*", "agentdojo_*", "agent_suite*", "smoke_*", "canary_small*", "leak_analysis_*"]
 
 
 def run(cmd):
@@ -65,12 +62,12 @@ def main():
     a = ap.parse_args()
     results = os.path.join(HERE, "results")
     files = sorted({p for g in REPORT_GLOBS for p in glob.glob(os.path.join(results, g))
-                    if os.path.isfile(p) and os.path.basename(p) not in V3_ORIGINAL})
-    caches = [] if a.no_cache else sorted(glob.glob(os.path.join(results, "cache", "sep_v32_*.jsonl")))
+                    if os.path.isfile(p)})
+    caches = [] if a.no_cache else sorted(glob.glob(os.path.join(results, "cache", "sep_*.jsonl")))
     if not files:
-        sys.exit("no v3.2 results found in results/: run the tests in TESTING_PLAN.md first")
+        sys.exit("no results found in results/: run the tests in TESTING_PLAN.md first")
     env = environment(a.ollama)
-    md = ["# SelfGuard v3.2 test results", "", f"Collected {env['collected_at']} from commit `{env['git_commit']}` "
+    md = ["# SelfGuard v3.4 test results", "", f"Collected {env['collected_at']} from commit `{env['git_commit']}` "
           f"(branch {env['git_branch']}, SelfGuard {env['selfguard_version']}).",
           f"GPU: {env['gpu'] or 'none found'}. Uncommitted changes: {'yes' if env['git_dirty_files'] else 'no'}.", ""]
     for p in files:
@@ -80,7 +77,7 @@ def main():
           [f"- cache/{os.path.basename(p)}" for p in caches]
     os.makedirs(a.out, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-    dst = os.path.join(a.out, f"selfguard-v3.2-results-{stamp}.zip")
+    dst = os.path.join(a.out, f"selfguard-v3.4-results-{stamp}.zip")
     with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("RESULTS.md", "\n".join(md) + "\n")
         z.writestr("environment.json", json.dumps(env, indent=1))

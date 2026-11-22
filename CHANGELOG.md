@@ -1,43 +1,71 @@
 # Changelog
 
-## 3.2.0.dev0 (2026-11-22)
+## 3.4.0.dev0 (2026-11-23)
 
-Not yet evaluated: see TESTING_PLAN.md. README results are still v3.0's.
+Not yet scored on a sealed split: see TESTING_PLAN.md.
+
+### Why
+On SEP dev rows (Mistral 7B) the displaced layout stops most attacks before the model writes
+anything, but the reply checks caught **none** of the attacks that still got through (about 1 in
+10). v3.4 targets those leaks.
 
 ### Added
-- **Canary layer** (`selfguard3/canary.py`): a harmless instruction with a fresh random code is
-  planted in the untrusted data; if the reply contains the code, the model followed data
-  instructions during this call, so the reply is withheld and every action blocked. It watches
-  the model's behaviour, not the attacker's wording; no extra model call; it can only withhold.
-  On by default (`SelfGuard(canary=False)` turns it off). Adds one sentence to the data.
-- `SelfGuard.prepare()` returns the messages and that call's canary; `inspect(..., canary=...)`
-  checks it; `run()` wires both. `messages()` keeps the canary in `last_canary` for
-  single-threaded use. Smart routing is decided on the real data, before the canary is planted.
-- Evaluation: `eval/sep_v32.py` (SEP, no defence vs v3.1 vs v3.2, resumable, one-shot sealed
-  mode tied to `PREREGISTRATION_v3.2.md`), `build_sealed_v32.py` (fresh sealed split excluding
-  Watchword's and v3's rows), `eval/canary_small.py` (24-item smoke test), `eval/llm.py` (Ollama
-  or OpenAI-compatible calls, records model digests), `eval/collect_results.py` (one zip of all
-  results in Downloads). `eval/bipia_eval.py` now compares none / v3.1 / v3.2 (v4 optional).
-- `TESTING_PLAN.md`, `PREREGISTRATION_v3.2.md` (draft, finished before the sealed run).
+- **Echo strip** (`selfguard3/echo.py`, on by default): removes reply sentences whose content
+  words come mostly (>= `echo_threshold`, default 0.3) from words found only in the data's
+  instruction-like sentences, i.e. sentences that carry out an injected instruction. It removes
+  text, never withholds or allows. On 310 SEP dev rows it stops 14 attacks v3.1 lets through and
+  none the other way (McNemar p = 0.0001), and removes a sentence from about 15% of clean replies.
+- `eval/sep_splits.py`: rebuilds every SEP split (dev, the first sealed test, v3.0's sealed
+  split, the new v3.4 sealed split) from the public archive and checks each earlier split against
+  its published SHA-256. No other checkout is needed.
+- `eval/sep_eval.py`: one SEP script for dev and the one-shot sealed run. Arms: none, v3.1, v3.3
+  (dev), smart routing, v3.4. Routing and echo strip are scored from the none / v3.1 replies
+  (prompts are byte-identical), so the sealed run needs 3,600 generations, not 5,400. Reports
+  SEP's substring witness match and a whole-word match (the substring rule counts short witnesses
+  inside other words, e.g. "pen" in "open").
+- `eval/leak_analysis.py`: where attacks leak through an arm (counts by attack type, check score
+  and witness position; never row text).
+- `tests/test_echo.py`; `tests/test_engine.py` checks the engine against 406 decisions and 18
+  layouts recorded from its original package (`tests/data/engine_decisions.json`).
 
 ### Changed
-- `eval/agent_suite.py` passes each call's canary to both guards it checks with.
+- `SelfGuard()` defaults are v3.4: `layout="routed"` (smart routing), `echo=True`.
+  `SelfGuard(layout="displaced", echo=False)` is v3.1.
+- The reply-check engine lives in `selfguard3/engine` (logic files byte-identical to the freeze;
+  only two docstrings changed, hashes in `engine/frozen_config.json`).
+- v3.0's pre-registration, sealed-test scripts and results moved unchanged to `archive/v3.0/`.
+- `eval/canary_small.py` is now `eval/smoke_test.py` (arms none / v3.1 / v3.3 / v3.4);
+  `eval/bipia_eval.py` compares none / v3.1 / v3.3 / v3.4.
+
+### Fixes
+- `eval/llm.py`: dropped connections (`ConnectionResetError`, `RemoteDisconnected`) are retried
+  instead of ending a multi-hour run.
+
+### Tried and dropped
+- **Authority duel**: the user's request asks for code T, a note in the data asks for code D;
+  withhold when D appears without T. On 30 SEP dev rows it fixed the canary's false alarms (3.3%
+  clean withheld) but stopped exactly the attacks v3.1 stopped (McNemar b = 0, c = 0): no boost,
+  so it was removed.
+- Two filters meant to cut echo strip's clean removals (only instructions off-topic for the task;
+  only instructions that stand alone in their document) did not separate clean replies from
+  attacks on dev data and were not adopted.
+
+## 3.3.0 (2026-11-22; built as 3.2.0.dev0)
+
+**Canary layer** (`selfguard3/canary.py`, now opt-in): a harmless instruction with a fresh random
+code is planted in the data; if the reply contains the code, the reply is withheld. Dropped at the
+dev stage, before any sealed run: helpful models follow harmless notes, so it fired on clean data
+(Mistral 7B: 44.6% of clean SEP dev replies withheld over 305 rows; Qwen2.5 7B: 92% on the smoke
+test) and could not tell attacks from normal use. Kept for reproducing that finding.
 
 ## 3.1.0 (2026-11-21)
 
-All results in the README were measured with **v3.0** (commit `da4d868`). The fixes below change
-behaviour and have not been re-scored; the sealed SEP split is already used, so v3.1 must be
-evaluated on the non-sealed benchmarks or a new pre-registered split.
-
-### Independent of Watchword
-- Watchword's engine is vendored in `selfguard3/_watchword` (byte-identical to its freeze,
-  commit `b51be8bf`; hashes checked by `tests/test_vendored.py`). No `sys.path` edits, no
-  Watchword checkout needed. `selfguard3.checks` runs the reply checks directly and is built
-  once per `SelfGuard`. Decisions match the original on 205 cases in both layouts.
-- `layout="routed"` (the pre-registered smart routing) is now available in `SelfGuard`.
+### Standalone
+- The reply-check engine is included in the package (no `sys.path` edits, no other checkout).
+  `selfguard3.checks` runs the checks directly and is built once per `SelfGuard`.
+- `layout="routed"` (the pre-registered smart routing) is available in `SelfGuard`.
 - `pyproject.toml`: `pip install .`, standard library only.
-- Findings name the check that fired (`obedience`, `provenance`, `leak`); v3.0 labelled every
-  Watchword withholding `obedience`.
+- Findings name the check that fired (`obedience`, `provenance`, `leak`).
 
 ### Fixes
 - **Approver never saw the field labels.** `PerimeterApprover` computed the words before each
@@ -45,25 +73,26 @@ evaluated on the non-sealed benchmarks or a new pre-registered split.
 - **Support trace treated every word as a claim.** `CLAIM_TOKEN` was compiled with `re.I`, so
   `[A-Z][a-z]{2,}` matched any 3+ letter word and normal sentences could be removed. Only day and
   month names (and am/pm) ignore case now.
-- **Nested tool arguments were dropped.** `parse_actions` used a non-greedy `\{.*?\}`; nested
-  JSON failed to parse and only a `"to"` field was kept, so values in other fields skipped the
-  lock. It now uses a real JSON decoder; unparseable calls keep their whole text so every value
-  in them is checked (fail closed).
-- **Risky-verb rule was not implemented.** `RISKY` was defined but unused. `ActionLock(...,
-  task=...)` now holds actions whose name contains a risky verb (send, pay, delete, post, run,
-  invite, ...) when the user's request asks for nothing of that kind. `SelfGuard` and
-  `eval/agentdojo_run.py` pass the request; `task=None` keeps v3.0 behaviour.
+- **Nested tool arguments were dropped.** `parse_actions` used a non-greedy `\{.*?\}`; it now uses
+  a real JSON decoder; unparseable calls keep their whole text so every value is checked.
+- **Risky-verb rule was not implemented.** `ActionLock(..., task=...)` now holds actions whose
+  name contains a risky verb (send, pay, delete, post, run, invite, ...) when the user's request
+  asks for nothing of that kind.
 - **Tests:** `unittest.main()` sat mid-file in `tests/test_modules.py`, so running the file
   directly skipped the approver and v4 tests. Regression tests added for every fix.
 - `.gitattributes` forces LF so SHA-256-checked files hash the same on every OS.
 
-### Integrity note: `results_freeze.sha256`
-The hashes in `results_freeze.sha256` do not match the committed `PREREGISTRATION.md`,
-`score_v3.py` and `build_sealed.py` (neither the LF bytes in git nor CRLF checkouts). The file is
-left unchanged as found. SHA-256 of the files as committed in `da4d868`:
+### Integrity note: `archive/v3.0/results_freeze.sha256`
+The hashes in that file do not match the committed v3.0 `PREREGISTRATION.md`, `score_v3.py` and
+`build_sealed.py`. It is left unchanged as found. SHA-256 of the files as committed in `da4d868`:
 
 ```
 5fa706294c2635f6dce505e2d96dca98dd3e150005dab4b4797068988823079e  PREREGISTRATION.md
 f02130ae37d99c49935b7af571ee95bdeaa47bc0825695f11a58f89f125318a1  score_v3.py
 e2e0c039bc9f60eac085059931c16de7329b5e748568ae59321501c99717d29d  build_sealed.py
 ```
+
+## 3.0.0 (2026-11-20)
+
+Smart routing, reply checks, action lock, approver, link tripwire, support trace, optional v4 lie
+layer. Sealed, pre-registered SEP test PASS 3/3 (record in `archive/v3.0/`).
