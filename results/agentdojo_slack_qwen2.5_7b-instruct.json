@@ -1,0 +1,16 @@
+{
+ "no_defence": {
+  "utility_clean": 0.47619047619047616,
+  "attack_success": 0.29523809523809524,
+  "utility_under_attack": 0.21904761904761905,
+  "n_clean": 21,
+  "n_attack": 105
+ },
+ "selfguard3": {
+  "utility_clean": 0.19047619047619047,
+  "attack_success": 0.0,
+  "utility_under_attack": 0.09523809523809523,
+  "n_clean": 21,
+  "n_attack": 105
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "selfguard3_approver": {
+  "utility_clean": 0.375,
+  "attack_success": 0.034722222222222224,
+  "utility_under_attack": 0.3402777777777778,
+  "n_clean": 16,
+  "n_attack": 144,
+  "tool_calls": 291,
+  "flagged": 86,
+  "approved": 20
+ }
+}

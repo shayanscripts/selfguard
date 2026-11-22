@@ -1,70 +1,46 @@
 # Changelog
 
-All notable project changes will be documented in this file.
+## 3.1.0 (2026-11-21)
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project intends to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All results in the README were measured with **v3.0** (commit `da4d868`). The fixes below change
+behaviour and have not been re-scored; the sealed SEP split is already used, so v3.1 must be
+evaluated on the non-sealed benchmarks or a new pre-registered split.
 
-## [Unreleased]
+### Independent of Watchword
+- Watchword's engine is vendored in `selfguard3/_watchword` (byte-identical to its freeze,
+  commit `b51be8bf`; hashes checked by `tests/test_vendored.py`). No `sys.path` edits, no
+  Watchword checkout needed. `selfguard3.checks` runs the reply checks directly and is built
+  once per `SelfGuard`. Decisions match the original on 205 cases in both layouts.
+- `layout="routed"` (the pre-registered smart routing) is now available in `SelfGuard`.
+- `pyproject.toml`: `pip install .`, standard library only.
+- Findings name the check that fired (`obedience`, `provenance`, `leak`); v3.0 labelled every
+  Watchword withholding `obedience`.
 
-## [0.2.0-rc.1] - 2026-08-09
+### Fixes
+- **Approver never saw the field labels.** `PerimeterApprover` computed the words before each
+  value (`From:`, `IBAN:`) but `PROMPT` had no `{where}` slot, so `str.format` dropped them.
+- **Support trace treated every word as a claim.** `CLAIM_TOKEN` was compiled with `re.I`, so
+  `[A-Z][a-z]{2,}` matched any 3+ letter word and normal sentences could be removed. Only day and
+  month names (and am/pm) ignore case now.
+- **Nested tool arguments were dropped.** `parse_actions` used a non-greedy `\{.*?\}`; nested
+  JSON failed to parse and only a `"to"` field was kept, so values in other fields skipped the
+  lock. It now uses a real JSON decoder; unparseable calls keep their whole text so every value
+  in them is checked (fail closed).
+- **Risky-verb rule was not implemented.** `RISKY` was defined but unused. `ActionLock(...,
+  task=...)` now holds actions whose name contains a risky verb (send, pay, delete, post, run,
+  invite, ...) when the user's request asks for nothing of that kind. `SelfGuard` and
+  `eval/agentdojo_run.py` pass the request; `task=None` keeps v3.0 behaviour.
+- **Tests:** `unittest.main()` sat mid-file in `tests/test_modules.py`, so running the file
+  directly skipped the approver and v4 tests. Regression tests added for every fix.
+- `.gitattributes` forces LF so SHA-256-checked files hash the same on every OS.
 
-### Added
+### Integrity note: `results_freeze.sha256`
+The hashes in `results_freeze.sha256` do not match the committed `PREREGISTRATION.md`,
+`score_v3.py` and `build_sealed.py` (neither the LF bytes in git nor CRLF checkouts). The file is
+left unchanged as found. SHA-256 of the files as committed in `da4d868`:
 
-- Fixed-clean-FPR evaluation API and CLI with validation-only threshold
-  selection, Wilson confidence intervals, realistic-prevalence precision,
-  per-stratum and hard-negative metrics.
-- Fail-closed cross-split checks for example IDs, source groups, and available
-  content hashes.
-- Production-oriented evaluation protocol and hard-negative taxonomy.
-- Deny-by-default pre-action tool boundary with scope checks, argument policy,
-  detector vetoes, verified approval for side effects, privacy-conscious audit
-  events, and fail-closed execution.
-- Protocol-4 release evaluation with 400 clean validation and test examples
-  and 1% Wilson-upper-bound FPR selection; both candidates failed the recall
-  gate and remain development-only.
-- Auditable pre-generation `PromptRiskDetector` signals and a v3 development
-  workflow combining prompt and response features with hard-negative mining.
-- V4 development workflow with character/word TF-IDF prompt modeling,
-  group-safe out-of-fold stacking, separate external-domain calibration, exact
-  cross-dataset overlap rejection, and privacy-safe row-level score exports.
-- Provider-independent `PromptInjectionPlugin` with allow/review/block states,
-  fail-closed detector and audit behavior, pre-call wrapping, privacy-conscious
-  audit events, and hash-verified `skops` model-bundle loading.
-- V5 development workflow with four text learners, soft-vote and stacked
-  candidates, exact stable top-k hard-negative selection, and plug-in bundle
-  export.
-
-### Changed
-
-- Made confidence-bound FPR selection the evaluator and CLI default; point-FPR
-  selection now requires an explicit exploratory opt-in.
-- Moved analytics hashing after all exports are written and verify the archive
-  member set, so fixed-FPR, runtime, and score files are covered.
-- Kept Signal 4 ablation-only: the protocol-4 run improved ranking AUC/AP but
-  reduced recall, F1, and effective-attack recall at the 1% confidence-bound
-  operating point while adding substantially higher latency.
-- Added conservative prevalence-adjusted precision based on recall's Wilson
-  lower bound and clean-FPR's Wilson upper bound.
-
-## [0.1.0] - 2026-08-03
-
-### Added
-
-- Machine-readable record of the canonical SEP-derived fixed-system exploratory results.
-- Reproducibility, limitations, contribution, security, and citation documentation.
-- Research workflow for paired SELF-Light (S1-S3) and SELF-Full (S1-S4) random-forest ablation.
-- S4 model conditional negative-log-likelihood computation from causal-model logits.
-- Protocol-2 split selection with non-overlapping future smoke/paper slices, pinned model revisions, provenance manifests, artifact hashes, and paired uncertainty code.
-- PyTorch-enabled Python 3.10/3.12 continuous integration, notebook validation, and distribution checks.
-- Initial experimental SELFGuard package with vocabulary, coherence, and system-alignment drift signals.
-- Calibration, post-generation response suppression, supported backend wrappers, batch checking, and optional telemetry.
-- Fixed weighted baseline and Colab benchmark notebooks.
-
-### Changed
-
-- Clarified that runtime detection is post-generation and cannot prevent generation-time side effects.
-- Clarified that telemetry is opt-in and that endpoint operators can receive ordinary network metadata.
-- Reframed historical paper-mode numbers as exploratory because the test set was inspected during development and old smoke/paper slices overlapped.
-- Replaced broad “leakage-free” language with the supported “task- and witness-group-disjoint selected split” description.
-- Redacted blocked raw responses from nested detection metadata and made telemetry delivery messages reflect actual endpoint configuration.
-- Expanded the README evidence section to report the weighted baseline and both Random Forest operating points with complete validation, test, confusion-count, ranking, and witness-proxy metrics.
+```
+5fa706294c2635f6dce505e2d96dca98dd3e150005dab4b4797068988823079e  PREREGISTRATION.md
+f02130ae37d99c49935b7af571ee95bdeaa47bc0825695f11a58f89f125318a1  score_v3.py
+e2e0c039bc9f60eac085059931c16de7329b5e748568ae59321501c99717d29d  build_sealed.py
+```
